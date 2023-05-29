@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ltd.newbee.mall.dao.FavoriteAlterMapper">
+  <resultMap type="ltd.newbee.mall.entity.FavoriteAlter" id="FavoriteAlterMapper"></resultMap>
+
+  <!-- 查询 user_favorite 收藏记录 -->
+  <select id="findFavorite" resultMap="FavoriteAlterMapper">
+   SELECT title_name, MIN(img_url) AS img_url
+FROM user_favorite 
+WHERE user_id = #{userId}
+GROUP BY title_name; 
+  </select>
+  
+  <!-- 查询 user_favorite 所有收藏记录 -->
+  <select id="findAllFavorite" resultMap="FavoriteAlterMapper">
+   SELECT title_name, img_url
+FROM user_favorite 
+WHERE user_id = #{userId}
+
+  </select>
+
+  <!-- 插入 user_favorite 收藏记录 -->
+  <insert id="insertFavorite" parameterType="ltd.newbee.mall.entity.FavoriteAlter">
+    INSERT INTO user_favorite (hotel_id,title_name,user_id,img_url)
+    VALUES (#{hotelId,jdbcType=INTEGER}, #{titleName,jdbcType=VARCHAR}, #{userId,jdbcType=INTEGER},#{imgUrl,jdbcType=VARCHAR})
+  </insert>
+
+  <!-- 删除 user_favorite 收藏记录 -->
+  <delete id="deleteFavorite">
+    DELETE FROM user_favorite
+    WHERE user_id = #{userId}
+      AND title_name = #{titleName}
+      AND hotel_id = #{hotelId}
+  </delete>
+<!-- //add some comments for test -->
+</mapper>

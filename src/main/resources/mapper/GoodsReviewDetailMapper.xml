@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ltd.newbee.mall.dao.GoodsReviewDetailMapper">
+	<resultMap id="GoodsReviewDetailMapper" type="ltd.newbee.mall.entity.GoodsReviewDetail">
+		<id column="review_id" property="reviewId" />
+		<result column="goods_id" property="goodsId" />
+		<result column="goods_name" property="goodsName" />
+		<result column="review_rank" property="reviewRank" />
+		<result column="nickname" property="nickName" />
+		<result column="review_title" property="reviewTitle" />
+		<result column="review_content" property="reviewContent" />
+	</resultMap>
+	<!-- 获取商品评价列表 -->
+	<select id="getGoodsReviewsByGoodsId" resultMap="GoodsReviewDetailMapper">
+    select t.goods_id,
+           t.review_id,
+           g.goods_name,
+           t.review_rank,
+           t.nickname,
+           t.review_title,
+           t.review_content
+    from review_detail as t
+    left join review_table as g on t.goods_id = g.goods_id and t.review_id = g.review_id
+    where t.goods_id = #{goodsId}
+	</select>
+	<!-- 插入商品评价 -->
+	<insert id="insertGoodsReviewDetail" parameterType="ltd.newbee.mall.entity.GoodsReviewDetail">
+    insert into review_detail(goods_id, review_id, goods_name, review_rank, nickname, review_title, review_content)
+    values(#{goodsId}, #{reviewId}, #{goodsName}, #{reviewRank}, #{nickName}, #{reviewTitle}, #{reviewContent})
+	</insert>
+</mapper>

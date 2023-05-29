@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ltd.newbee.mall.dao.AirbnbLodgingSearchMapper">
+	<resultMap id="AirbnbLodgingSearchMapper" type="ltd.newbee.mall.entity.AirbnbLodgingSearcheEntity"></resultMap>
+	<select id="getLodgingSearchHotelRoomInfo" resultMap="AirbnbLodgingSearchMapper">
+		SELECT 
+				hotel_room_information.hotel_id,
+				hotel_room_information.country,
+				hotel_room_information.city,
+				hotel_room_information.hotel_name,
+				hotel_room_information.room_name,
+				hotel_room_information.price_per_night,
+				GROUP_CONCAT(distinct(hotel_image.hotel_image) SEPARATOR ',') AS hotel_image,
+				round(avg(point_clean+point_communication+point_info+point_location+point_price+point_checkin)/6,2) as avg_point,
+				ST_Distance_Sphere(
+        			ST_GeomFromText(ST_AsText(hotel_room_information.lng_lat)),
+       	 			ST_GeomFromText('POINT(139.6917 35.6895)')
+    				) / 1000 AS distance,
+    			MIN(air_booking.check_out_date) AS min_check_out_date, 
+    			DATE_ADD(MIN(air_booking.check_out_date), INTERVAL 5 DAY) AS available_check_in_date
+
+
+		FROM hotel_room_information
+		left join review_bnb
+		on hotel_room_information.hotel_id = review_bnb.hotel_id
+		
+		join hotel_image
+		on hotel_room_information.hotel_id = hotel_image.hotel_id
+		
+		left join air_booking
+		on hotel_room_information.hotel_id = air_booking.hotel_id
+		and hotel_room_information.room_id = air_booking.room_id
+
+		<if test="category != null">
+		join logding_filter_category
+		on hotel_room_information.hotel_id = logding_filter_category.hotel_id
+		
+		<if test="roomType != null">
+		left join lodging_filter_room_type
+		on hotel_room_information.hotel_id = lodging_filter_room_type.hotel_id
+		and hotel_room_information.room_id = lodging_filter_room_type.room_id
+		</if>
+		<if test="bedroomNum != null or bedNum != null or bathroomNum != null">
+		join lodging_filter_room_bed
+		on hotel_room_information.hotel_id = lodging_filter_room_bed.hotel_id
+		and hotel_room_information.room_id = lodging_filter_room_bed.room_id
+		</if>
+		<if test="buildingType != null">
+		join lodging_filter_building_type
+		on hotel_room_information.hotel_id = lodging_filter_building_type.hotel_id
+		and hotel_room_information.room_id = lodging_filter_building_type.room_id
+		</if>
+		<if test="facilityEssential != null">
+		join lodging_filter_facility_essential
+		on  hotel_room_information.hotel_id = lodging_filter_facility_essential.hotel_id
+		and hotel_room_information.room_id = lodging_filter_facility_essential.room_id
+		</if>
+		<if test="facilitySpecial != null">
+		join lodging_filter_facility_special
+		on hotel_room_information.hotel_id = lodging_filter_facility_special.hotel_id
+		and hotel_room_information.room_id = lodging_filter_facility_special.room_id
+		</if>
+		<if test="facilityLocation != null">
+		join lodging_filter_facility_location
+		on hotel_room_information.hotel_id = lodging_filter_facility_location.hotel_id
+		and hotel_room_information.room_id = lodging_filter_facility_location.room_id
+		</if>
+		<if test="facilitySafety != null">
+		join lodging_filter_facility_safety
+		on hotel_room_information.hotel_id = lodging_filter_facility_safety.hotel_id
+		and hotel_room_information.room_id = lodging_filter_facility_safety.room_id
+		</if>
+		<if test="entranceParking != null">
+		join lodging_filter_access_entrance_parking
+		on hotel_room_information.hotel_id = lodging_filter_access_entrance_parking.hotel_id
+		and hotel_room_information.room_id = lodging_filter_access_entrance_parking.room_id
+		</if>
+		<if test="accessBedroom != null">
+		join lodging_filter_access_bedroom
+		on hotel_room_information.hotel_id = lodging_filter_access_bedroom.hotel_id
+		and hotel_room_information.room_id = lodging_filter_access_bedroom.room_id
+		</if>
+		<if test="accessBathroom != null">
+		join lodging_filter_access_bathroom
+		on hotel_room_information.hotel_id = lodging_filter_access_bathroom.hotel_id
+		and hotel_room_information.room_id = lodging_filter_access_bathroom.room_id
+		</if>
+		<if test="assistiveDevice != null">
+		join lodging_filter_access_assistive_device
+		on hotel_room_information.hotel_id = lodging_filter_access_assistive_device.hotel_id
+		and hotel_room_information.room_id = lodging_filter_access_assistive_device.room_id
+		</if>
+		<if test="superHost != null">
+		join lodging_filter_top_accommodation
+		on hotel_room_information.hotel_id = lodging_filter_top_accommodation.hotel_id
+		and hotel_room_information.room_id = lodging_filter_top_accommodation.room_id
+		</if>
+		<if test="bookingOption != null">
+		join lodging_filter_booking_option
+		on hotel_room_information.hotel_id = lodging_filter_booking_option.hotel_id
+		and hotel_room_information.room_id = lodging_filter_booking_option.room_id
+		</if>
+
+	
+		</if>
+		<where>
+
+			<if test="checkInDate == null and checkOutDate == null">
+			and	NOT EXISTS (
+			SELECT *
+			FROM air_booking 
+			WHERE 
+				air_booking.hotel_id = hotel_room_information.hotel_id
+				AND air_booking.check_in_date > air_booking.check_out_date
+				AND DATEDIFF(air_booking.check_in_date, air_booking.check_out_date) &lt;= 5
+		)
+				and air_booking.check_out_date > CURDATE()
+			</if>
+		 	<if test="checkInDate != null and checkOutDate != null">
+				and	NOT EXISTS (
+			    SELECT *
+			    FROM air_booking
+			    WHERE hotel_room_information.hotel_id = air_booking.hotel_id
+			    AND hotel_room_information.room_id = air_booking.room_id
+			    AND (
+			        (check_in_date &lt;= #{checkInDate} AND check_out_date &gt;= #{checkOutDate})
+        		OR (check_in_date &lt;= #{checkInDate} AND check_out_date &gt;= #{checkInDate})
+        		))
+		    </if>
+		    <if test="checkInDate != null and checkOutDate == null">
+			and	NOT EXISTS (
+			    SELECT *
+			    FROM air_booking
+			    WHERE hotel_room_information.hotel_id = air_booking.hotel_id
+			    AND hotel_room_information.room_id = air_booking.room_id
+			    AND (
+			        (check_in_date &lt;= #{checkInDate} AND check_out_date &gt;= #{checkInDate})
+			        OR (check_in_date &lt;= #{checkInDate} + INTERVAL 1 DAY AND check_out_date &gt;= #{checkInDate} + INTERVAL 1 DAY)
+			    )
+			)
+		    </if>
+		    <if test="checkInDate == null and checkOutDate != null">
+		     and NOT EXISTS (
+			    SELECT *
+			    FROM air_booking
+			    WHERE hotel_room_information.hotel_id = air_booking.hotel_id
+			    AND hotel_room_information.room_id = air_booking.room_id
+			    AND (
+			        (check_in_date &lt;= #{checkOutDate} - INTERVAL 1 DAY AND check_out_date &gt;= #{checkOutDate}) - INTERVAL 1 DAY
+			        OR (check_in_date &lt;= #{checkOutDate}  AND check_out_date &gt;= #{checkOutDate} )
+			    )
+			)
+		    </if>
+			
+		<!--#价格区间比较  -->
+			<if test="minPrice != null and maxPrice != null">
+			 and hotel_room_information.price_per_night BETWEEN #{minPrice} AND #{maxPrice}
+			</if>
+			<!--国家与地区 -->
+			<if test="country != null">
+				and hotel_room_information.country = #{country}
+			</if>
+			<!--#房间type -->
+			<if test="roomType != null">
+				and lodging_filter_room_type.room_type in
+				<foreach item="roomType" collection="roomType" open="(" separator="," close=")">
+					#{roomType}
+				</foreach>
+			</if>
+			<!--#房间个数  -->
+			<if test="bedroomNum != null">
+				and lodging_filter_room_bed.bedroom_num =#{bedroomNum}
+			</if>
+			<if test="bedNum != null">
+				and lodging_filter_room_bed.bed_num =#{bedNum}
+			</if>
+			<if test="bathroomNum != null">
+				and lodging_filter_room_bed.bathroom_num =#{bathroomNum}
+			</if>
+			<!-- #建物TYPE -->
+			<if test="buildingType != null">
+				and lodging_filter_building_type.building_type in
+				<foreach item="buildingType" collection="buildingType" open="(" separator="," close=")">
+				#{buildingType}
+				</foreach>
+			</if>
+			<!-- #アメニティ・設備 : 必須アメニティ・設備 -->
+			<if test="facilityEssential != null">
+				and lodging_filter_facility_essential.facility_essential in
+				<foreach item="facilityEssential" collection="facilityEssential" open="(" separator="," close=")">
+       				#{facilityEssential}
+    			</foreach>
+			</if>
+			<!-- #アメニティ・設備 :特長 -->
+			<if test="facilitySpecial != null">
+				and lodging_filter_facility_special.facility_special in
+				<foreach item="facilitySpecial" collection="facilitySpecial" open="(" separator="," close=")">
+					#{facilitySpecial}
+				</foreach>
+			</if>
+			<!-- #アメニティ・設備 :場所 -->
+			<if test="facilityLocation != null">
+				and lodging_filter_facility_location.facility_location in
+				<foreach item="facilityLocation" collection="facilityLocation" open="(" separator="," close=")">
+					#{facilityLocation}
+				</foreach>
+			</if>
+			<!-- #アメニティ・設備 :安全性 -->
+			<if test="facilitySafety != null">
+				and lodging_filter_facility_safety.facility_safety in
+				<foreach item="facilitySafety" collection="facilitySafety" open="(" separator="," close=")">
+					#{facilitySafety}
+				</foreach>
+			</if>
+			<!-- #アクセシビリティ機能・設備:ゲスト用玄関と駐車場 -->
+			<if test="entranceParking != null">
+				and lodging_filter_access_entrance_parking.entrance_parking in
+				<foreach item="entranceParking" collection="entranceParking" open="(" separator="," close=")">
+					#{entranceParking}
+				</foreach>
+			</if>
+			<!-- #アクセシビリティ機能・設備:バスルーム -->
+			<if test="accessBathroom != null">
+				and lodging_filter_access_bathroom.access_bathroom in
+				<foreach item="accessBathroom" collection="accessBathroom" open="(" separator="," close=")">
+					#{accessBathroom}
+				</foreach>
+			</if>
+			<!-- #アクセシビリティ機能・設備:寝室 -->
+			<if test="accessBedroom != null">
+				and lodging_filter_access_bedroom.access_bedroom in
+				<foreach item="accessBedroom" collection="accessBedroom" open="(" separator="," close=")">
+					#{accessBedroom}
+				</foreach>
+			</if>
+			<!-- #アクセシビリティ機能・設備:介助用具 -->
+			<if test="assistiveDevice != null">
+				and lodging_filter_access_assistive_device.assistive_device in
+				<foreach item="assistiveDevice" collection="assistiveDevice" open="(" separator="," close=")">
+					#{assistiveDevice}
+				</foreach>
+			</if>
+			<!-- #トップクラスの宿泊先 -->
+			<if test="superHost != null">
+				and lodging_filter_top_accommodation.super_host in
+				<foreach item="superHost" collection="superHost" open="(" separator="," close=")">
+					#{superHost}
+				</foreach>
+			</if>
+			<!-- 予約オプション -->
+			<if test="bookingOption != null">
+				and lodging_filter_booking_option.booking_option in
+				<foreach item="bookingOption" collection="bookingOption" open="(" separator="," close=")">
+					#{bookingOption}
+				</foreach>
+			</if>
+			<!-- 人数 -->
+		
+			  <if test="adultNum != null">
+			   and hotel_room_information.adult_contain >= #{adultNum}
+			  </if>
+			  <if test="childNum != null">
+			    and hotel_room_information.child_contain >= #{childNum}
+			  </if>
+			  <if test="infantNum != null">
+			    and hotel_room_information.infant_contain >= #{infantNum}
+			  </if>
+			  <if test="petNum != null">
+			    and hotel_room_information.pet_contain >= #{petNum}
+			  </if>
+
+			<!-- category -->
+			<if test="category != null">
+				and logding_filter_category.category = #{category}
+			</if>
+		</where>
+		
+		GROUP BY hotel_room_information.hotel_id, hotel_room_information.room_id
+		<if test="facilityEssential != null">
+					having count(distinct(lodging_filter_facility_essential.facility_essential)) >= ${facilityEssential.size()}
+				</if>
+		<if test="bookingOption != null">
+					and count(distinct(lodging_filter_booking_option.booking_option)) >= ${bookingOption.size()}
+				</if>
+		<if test="roomType != null">
+					and count(distinct(lodging_filter_room_type.room_type))>=${roomType.size()}
+				</if>
+		<if test="superHost != null">
+					and count(distinct(lodging_filter_top_accommodation.super_host))>=${superHost.size()}
+				</if>
+		<if test="assistiveDevice != null">
+					and count(distinct(lodging_filter_access_assistive_device.assistive_device))>=${assistiveDevice.size()}
+				</if>
+		<if test="accessBathroom != null">
+					and count(distinct(lodging_filter_access_bathroom.access_bathroom)) >= ${accessBathroom.size()}
+				</if>
+		<if test="entranceParking != null">
+					and count(distinct(lodging_filter_access_entrance_parking.entrance_parking))>=${entranceParking.size()}
+				</if>
+		<if test="facilitySafety != null">
+					and count(distinct(lodging_filter_facility_safety.facility_safety))>=${facilitySafety.size()}
+				</if>
+		<if test="facilityLocation != null">
+					and count(distinct(lodging_filter_facility_location.facility_location))>=${facilityLocation.size()}
+				</if>
+		<if test="facilitySpecial != null">
+					and count(distinct(lodging_filter_facility_special.facility_special))>=${facilitySpecial.size()}
+				</if>
+		<if test="accessBedroom != null">
+					and count(distinct(lodging_filter_access_bedroom.access_bedroom))>=${accessBedroom.size()}
+				</if>
+		
+	</select>
+	<select id="getLodgeingSearchDefaultInfo" resultMap="AirbnbLodgingSearchMapper ">
+			SELECT 
+				hotel_room_information.hotel_id,
+				hotel_room_information.country,
+				hotel_room_information.city,
+				hotel_room_information.hotel_name,
+				hotel_room_information.room_name,
+				hotel_room_information.price_per_night,
+				GROUP_CONCAT(distinct(hotel_image.hotel_image) SEPARATOR ',') AS hotel_image,
+				round(avg(point_clean+point_communication+point_info+point_location+point_price+point_checkin)/6,2) as avg_point,
+				ST_Distance_Sphere(
+        			ST_GeomFromText(ST_AsText(hotel_room_information.lng_lat)),
+       	 			ST_GeomFromText('POINT(139.6917 35.6895)')
+    				) / 1000 AS distance,
+    			MIN(air_booking.check_out_date) AS min_check_out_date, 
+    			DATE_ADD(MIN(air_booking.check_out_date), INTERVAL 5 DAY) AS available_check_in_date
+
+
+		FROM hotel_room_information
+		left join review_bnb
+		on hotel_room_information.hotel_id = review_bnb.hotel_id
+		
+		join hotel_image
+		on hotel_room_information.hotel_id = hotel_image.hotel_id
+		
+		left join air_booking
+		on hotel_room_information.hotel_id = air_booking.hotel_id
+		and hotel_room_information.room_id = air_booking.room_id
+
+		<if test="category != null">
+		join logding_filter_category
+		on hotel_room_information.hotel_id = logding_filter_category.hotel_id
+		</if>
+
+		<where>
+
+			<if test="checkInDate == null and checkOutDate == null">
+			and	NOT EXISTS (
+			SELECT *
+			FROM air_booking 
+			WHERE 
+				air_booking.hotel_id = hotel_room_information.hotel_id
+				AND air_booking.check_in_date > air_booking.check_out_date
+				AND DATEDIFF(air_booking.check_in_date, air_booking.check_out_date) &lt;= 5
+		)
+				and air_booking.check_out_date > CURDATE()
+			</if>
+		 	<if test="checkInDate != null and checkOutDate != null">
+				and	NOT EXISTS (
+			    SELECT *
+			    FROM air_booking
+			    WHERE hotel_room_information.hotel_id = air_booking.hotel_id
+			    AND hotel_room_information.room_id = air_booking.room_id
+			    AND (
+			        (check_in_date &lt;= #{checkInDate} AND check_out_date &gt;= #{checkOutDate})
+        		OR (check_in_date &lt;= #{checkInDate} AND check_out_date &gt;= #{checkInDate})
+        		))
+		    </if>
+		    <if test="checkInDate != null and checkOutDate == null">
+			and	NOT EXISTS (
+			    SELECT *
+			    FROM air_booking
+			    WHERE hotel_room_information.hotel_id = air_booking.hotel_id
+			    AND hotel_room_information.room_id = air_booking.room_id
+			    AND (
+			        (check_in_date &lt;= #{checkInDate} AND check_out_date &gt;= #{checkInDate})
+			        OR (check_in_date &lt;= #{checkInDate} + INTERVAL 1 DAY AND check_out_date &gt;= #{checkInDate} + INTERVAL 1 DAY)
+			    )
+			)
+		    </if>
+		    <if test="checkInDate == null and checkOutDate != null">
+		     and NOT EXISTS (
+			    SELECT *
+			    FROM air_booking
+			    WHERE hotel_room_information.hotel_id = air_booking.hotel_id
+			    AND hotel_room_information.room_id = air_booking.room_id
+			    AND (
+			        (check_in_date &lt;= #{checkOutDate} - INTERVAL 1 DAY AND check_out_date &gt;= #{checkOutDate}) - INTERVAL 1 DAY
+			        OR (check_in_date &lt;= #{checkOutDate}  AND check_out_date &gt;= #{checkOutDate} )
+			    )
+			)
+		    </if>
+			
+			<!--国家与地区 -->
+			<if test="country != null">
+				and hotel_room_information.country = #{country}
+			</if>
+			<!-- 人数 -->
+			  <if test="adultNum != null">
+			   and hotel_room_information.adult_contain >= #{adultNum}
+			  </if>
+			  <if test="childNum != null">
+			    and hotel_room_information.child_contain >= #{childNum}
+			  </if>
+			  <if test="infantNum != null">
+			    and hotel_room_information.infant_contain >= #{infantNum}
+			  </if>
+			  <if test="petNum != null">
+			    and hotel_room_information.pet_contain >= #{petNum}
+			  </if>
+			<!-- category -->
+			<if test="category != null">
+				and logding_filter_category.category = #{category}
+			</if>
+		</where>
+		
+		GROUP BY hotel_room_information.hotel_id, hotel_room_information.room_id
+	</select>
+	  <select id="findFilterCheckCount" resultType="java.lang.Integer">
+  SELECT COUNT(DISTINCT hotel_filter.hotel_id) as countFilter
+FROM hotel_room_information
+LEFT JOIN review_bnb ON hotel_room_information.hotel_id = review_bnb.hotel_id
+JOIN hotel_image ON hotel_room_information.hotel_id = hotel_image.hotel_id
+LEFT JOIN hotel_filter ON hotel_room_information.hotel_id = hotel_filter.hotel_id  
+LEFT JOIN filter_unit ON filter_unit.filter_id =hotel_filter.filter_id
+    <where>
+    <if test="filterId != null">
+       hotel_filter.filter_id IN
+      <foreach item="fId" collection="filterId" open="(" separator="," close=")">
+        #{fId}
+      </foreach>
+    </if>
+  
+  </where>
+  </select>
+</mapper>

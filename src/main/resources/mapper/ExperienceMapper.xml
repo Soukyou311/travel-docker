@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ltd.newbee.mall.dao.ExperienceMapper">
+    <resultMap type="ltd.newbee.mall.entity.Experience" id="ExperienceMapper"></resultMap>
+    <select id="findExperience" resultMap="ExperienceMapper">
+        SELECT experience.experience_id,
+        experience.duration,
+        count(DISTINCT (experience_review.user_id)) AS reviewCount,
+        AVG(experience_review.rating) AS ratingAverage,
+        experience.title,
+        experience.price,
+        experience.location,
+        filter_experience_type.experience_type
+        FROM experience
+        LEFT  JOIN filter_experience_commu ON experience.experience_id = filter_experience_commu.experience_id
+        JOIN experience_image ON experience.experience_id = experience_image.experience_id
+        JOIN experience_review ON experience.experience_id = experience_review.experience_id
+        JOIN filter_experience_feeling ON experience.experience_id = filter_experience_feeling.experience_id
+        JOIN filter_experience_move ON experience.experience_id = filter_experience_move.experience_id
+        JOIN filter_experience_time ON experience.experience_id = filter_experience_time.experience_id
+        JOIN filter_experience_type ON experience.experience_id = filter_experience_type.experience_id
+        JOIN experience_date ON experience.experience_id =experience_date.experience_id
+        <where>
+            <if test="location != null and location.size() > 0">
+                experience.location IN
+                <foreach item="location" collection="location" open="(" separator="," close=")">
+                    #{location}
+                </foreach>
+                
+            </if>
+            <if test="experienceType != null  and experienceType.size() > 0">
+                and filter_experience_type.experience_type IN
+                <foreach item="experienceType" collection="experienceType" open="(" separator="," close=")">
+                    #{experienceType}
+                </foreach>
+            </if>
+                  
+<if test="adultNum!=null" >
+and experience.adult_num &gt;=#{adultNum}
+</if>
+<if test="childNum!=null">
+and experience.child_num&gt;=#{childNum}
+</if>
+<if test="babyNum!=null">
+and experience.baby_num&gt;=#{babyNum}
+</if>
+
+
+<if test="minPrice!=null">
+and experience.price &gt;=#{minPrice}
+</if>
+<if test="maxPrice!= null">
+and experience.price &lt;=#{maxPrice}
+</if>
+<if test="startDate!=null">
+and experience_date.experience_date&gt;=#{startDate} 
+</if>
+<if test="endDate!=null">
+and experience_date.experience_date&lt;=#{endDate} 
+</if>
+    
+  <if test="notExtremely==0">
+and filter_experience_feeling.not_extremely=0
+</if>
+<if test="quietArea==0">
+and filter_experience_feeling.quiet_area=0
+</if>
+
+<if test="accessProviders==0">
+and experience.accessProviders =0
+</if>
+
+<if test="experienceTime!=null and experienceTime.size() > 0">
+and filter_experience_time.experience_time IN 
+<foreach item="experienceTime" collection="experienceTime" open="(" separator="," close=")">
+#{experienceTime}
+</foreach>
+</if>
+
+<if test="filterMove!=null and filterMove.size() > 0">
+and filter_experience_move.filter_move IN
+<foreach item="filterMove" collection="filterMove" open="(" separator="," close=")">
+#{filterMove}
+</foreach>
+</if>
+  
+   <if test="filterCommu!=null and filterCommu.size() > 0">
+and filter_experience_commu.filter_commu IN
+<foreach item="filterCommu" collection="filterCommu" open="(" separator="," close=")">
+#{filterCommu}
+</foreach>
+</if>    
+        </where>
+        Group By experience_id,img_url
+        <if test="filterCommu!=null"> having count(DISTINCT (filter_experience_commu.filter_commu))>=${filterCommu.size()}</if>
+        <if test="filterCommu==null and filterMove!=null"> having count(DISTINCT (filter_experience_move.filter_move))>=${filterMove.size()}</if>
+        <if test="filterCommu!=null and filterMove!=null"> and count(DISTINCT (filter_experience_move.filter_move))>=${filterMove.size()}</if>
+       </select>
+       
+       
+      <select id="findPopularExperience" resultMap="ExperienceMapper">
+      SELECT experience.experience_id,
+        experience.duration,
+        count(DISTINCT (experience_review.user_id)) AS reviewCount,
+        AVG(experience_review.rating) AS ratingAverage,
+        experience.title,
+        experience.price,
+        experience.location,
+        filter_experience_type.experience_type
+        FROM experience
+        LEFT  JOIN filter_experience_commu ON experience.experience_id = filter_experience_commu.experience_id
+        JOIN experience_image ON experience.experience_id = experience_image.experience_id
+        JOIN experience_review ON experience.experience_id = experience_review.experience_id
+        JOIN filter_experience_feeling ON experience.experience_id = filter_experience_feeling.experience_id
+        JOIN filter_experience_move ON experience.experience_id = filter_experience_move.experience_id
+        JOIN filter_experience_time ON experience.experience_id = filter_experience_time.experience_id
+        JOIN filter_experience_type ON experience.experience_id = filter_experience_type.experience_id
+        JOIN experience_date ON experience.experience_id =experience_date.experience_id
+        GROUP BY experience.experience_id
+        <if test="currPage!=null">
+        ORDER BY ReviewCount DESC
+         LIMIT ${(currPage-1)*7},${7};
+        </if>
+       
+        </select> 
+      
+    
+      
+       <select id="findTodayExperience" resultMap="ExperienceMapper">
+     SELECT experience.experience_id,
+  experience.duration,
+  count(DISTINCT (experience_review.user_id)) AS reviewCount,
+  AVG(experience_review.rating) AS ratingAverage,
+  experience.title,
+  experience.price,
+  experience.location,
+  filter_experience_type.experience_type
+FROM experience
+LEFT JOIN filter_experience_commu ON experience.experience_id = filter_experience_commu.experience_id
+JOIN experience_image ON experience.experience_id = experience_image.experience_id
+JOIN experience_review ON experience.experience_id = experience_review.experience_id
+JOIN filter_experience_feeling ON experience.experience_id = filter_experience_feeling.experience_id
+JOIN filter_experience_move ON experience.experience_id = filter_experience_move.experience_id
+JOIN filter_experience_time ON experience.experience_id = filter_experience_time.experience_id
+JOIN filter_experience_type ON experience.experience_id = filter_experience_type.experience_id
+JOIN experience_date ON experience.experience_id = experience_date.experience_id
+<where>
+experience_date.experience_date=#{today}
+</where>
+GROUP BY experience.experience_id, experience.duration, experience.title, experience.price, experience.location, filter_experience_type.experience_type
+ORDER BY experience.experience_id ASC 
+Limit 5;
+
+      </select>
+      
+      
+      <select id="findUniqueExperience" resultMap="ExperienceMapper">
+      SELECT experience.experience_id,
+        experience.duration,
+        count(DISTINCT (experience_review.user_id)) AS reviewCount,
+        AVG(experience_review.rating) AS ratingAverage,
+        experience.title,
+        experience.price,
+        experience.location,
+        filter_experience_type.experience_type
+        FROM experience
+        LEFT  JOIN filter_experience_commu ON experience.experience_id = filter_experience_commu.experience_id
+        JOIN experience_image ON experience.experience_id = experience_image.experience_id
+        JOIN experience_review ON experience.experience_id = experience_review.experience_id
+        JOIN filter_experience_feeling ON experience.experience_id = filter_experience_feeling.experience_id
+        JOIN filter_experience_move ON experience.experience_id = filter_experience_move.experience_id
+        JOIN filter_experience_time ON experience.experience_id = filter_experience_time.experience_id
+        JOIN filter_experience_type ON experience.experience_id = filter_experience_type.experience_id
+        JOIN experience_date ON experience.experience_id =experience_date.experience_id
+        GROUP BY experience.experience_id
+       <if test="currPage!=null">
+      ORDER BY ratingAverage DESC
+      LIMIT ${(currPage-1)*5},${5};
+        </if>
+       
+      </select>
+      
+      
+      <select id="findAllExperience" resultMap="ExperienceMapper">
+      SELECT experience.experience_id,
+        experience.duration,
+        count(DISTINCT (experience_review.user_id)) AS reviewCount,
+        AVG(experience_review.rating) AS ratingAverage,
+        experience.title,
+        experience.price,
+        experience.location,
+        filter_experience_type.experience_type
+        FROM experience
+        LEFT  JOIN filter_experience_commu ON experience.experience_id = filter_experience_commu.experience_id
+        JOIN experience_image ON experience.experience_id = experience_image.experience_id
+        JOIN experience_review ON experience.experience_id = experience_review.experience_id
+        JOIN filter_experience_feeling ON experience.experience_id = filter_experience_feeling.experience_id
+        JOIN filter_experience_move ON experience.experience_id = filter_experience_move.experience_id
+        JOIN filter_experience_time ON experience.experience_id = filter_experience_time.experience_id
+        JOIN filter_experience_type ON experience.experience_id = filter_experience_type.experience_id
+        JOIN experience_date ON experience.experience_id =experience_date.experience_id
+        GROUP BY experience.experience_id
+       <if test="currPage==1">
+       ORDER BY experience.experience_id DESC
+      
+      </if>
+      </select>
+</mapper>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ltd.newbee.mall.dao.QuestionAndLikeMapper">
+	<resultMap id="QuestionAndLikeMapper" type="ltd.newbee.mall.entity.QuestionAndLike">
+		<id column="question_id" property="questionId" />
+		<id column="goods_id" property="goodsId" />
+		<result column="question" property="question" />
+		<result column="answer" property="answer" />
+		<result column="question_date" property="questionDate" />
+		<result column="likeCount" property="likeCount" />
+	
+	</resultMap>
+	<!-- 获取商品问答列表 -->
+	<select id="getGoodsQuestionList" resultMap="QuestionAndLikeMapper">
+  SELECT g.goods_id, 
+  g.question_id,
+       g.question, 
+       g.answer, 
+       g.question_date,
+       COUNT(q.user_id) as likeCount
+	FROM goods_question as g
+	LEFT JOIN question_like as q ON g.goods_id = q.goods_id AND g.question_id = q.question_id
+	WHERE g.goods_id = #{goodsId}
+	GROUP BY g.goods_id, g.question_id
+	ORDER BY 
+    CASE 
+        WHEN #{orderBy} = 'likeCount' THEN likeCount 
+        ELSE g.question_date 
+    END DESC,
+    g.question_id ASC
+	LIMIT #{offset}, #{pageSize}
+
+   
+</select>
+	<!-- 获取商品问答点赞总数 -->
+	<select id="getGoodsQuestionLikeCount" resultType="java.lang.Integer">
+  SELECT count(*)
+    FROM question_like
+   WHERE goods_id = #{goodsId} and question_id = #{questionId}
+   
+</select>
+	<!-- 获取商品问答总数 -->
+	<select id="getGoodsQuestionCount" resultType="java.lang.Integer">
+  SELECT count(*) as questionCount
+    FROM goods_question
+   WHERE goods_id = #{goodsId}
+</select>
+</mapper>

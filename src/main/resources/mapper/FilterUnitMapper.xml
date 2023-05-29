@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ltd.newbee.mall.dao.FilterUnitMapper">
+  <resultMap type="ltd.newbee.mall.entity.FilterUnit" id="FilterUnitMapper"></resultMap>
+
+  <select id="findFilterUnit" resultMap="FilterUnitMapper">
+    SELECT  st.filter_name,st.filter_id,st.parent_id
+    FROM filter_unit AS st
+    LEFT JOIN filter_unit AS ed ON st.parent_id = ed.filter_id
+    LEFT JOIN filter_unit AS rd ON ed.parent_id = rd.filter_id
+    <where>
+      st.parent_id LIKE CONCAT(#{parentId}, '%')
+    </where>
+  </select>
+
+
+
+</mapper>

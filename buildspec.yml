@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands:
+      - echo Installing dependencies...
+      - mvn clean install -DskipTests=true
+
+  build:
+    on-failure: ABORT
+    commands:
+      - echo Building Spring Boot application..
+      - mvn package
+
+artifacts:
+  files:
+    - target/*.jar
+    - appspec.yml
+    - scripts/*.sh

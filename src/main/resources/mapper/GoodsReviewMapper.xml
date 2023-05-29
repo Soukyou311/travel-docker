@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ltd.newbee.mall.dao.GoodsReviewListMapper">
+	<resultMap id="GoodsReviewListMapper" type="ltd.newbee.mall.entity.GoodsReviewList">
+		<id column="user_name" property="userName" />
+		<id column="review_id" property="reviewId" />
+		<result column="review_rank" property="reviewRank" />
+		<result column="goods_name" property="goodsName" />
+		<result column="review_title" property="reviewTitle" />
+		<result column="review_content" property="reviewContent" />
+		<result column="review_date" property="reviewDate" />
+		<result column="likeCount" property="likeCount" />
+		<result column="ReviewStarCount" property="StarCount" />
+		<result column="starGrade" property="starGrade" />
+		<result column="contextCount" property="contextCount" />
+		<result column="review_image1" property="reviewImage1" />
+		<result column="review_image2" property="reviewImage2" />
+		<result column="review_image3" property="reviewImage3" />
+		<result column="review_image4" property="reviewImage4" />
+		<result column="review_image5" property="reviewImage5" />
+		<result column="pageNo" property="pageNo" />
+	</resultMap>
+	<!-- 获取商品问答列表 -->
+	<select id="getGoodsReviewList" resultMap="GoodsReviewListMapper">
+	
+	SELECT * FROM (
+    SELECT g.goods_id, 
+           g.user_name,
+           g.review_id, 
+           g.review_rank, 
+           g.goods_name,
+           g.review_title,
+           g.review_content,
+           g.review_date,
+           g.review_image1,
+           g.review_image2,
+           g.review_image3,
+           g.review_image4,
+           g.review_image5,
+           COUNT(q.user_id) as likeCount
+    FROM review_table as g
+    LEFT JOIN review_like as q ON g.goods_id = q.goods_id AND g.review_id = q.review_id
+    WHERE g.goods_id = #{goodsId}
+    GROUP BY g.goods_id, user_name
+    ORDER BY 
+        CASE 
+            WHEN #{orderBy} = 'likeCount' THEN likeCount 
+            ELSE g.review_date 
+        END DESC,
+        g.review_id ASC
+    LIMIT 3
+) AS t1
+	UNION
+
+	SELECT * FROM (
+    SELECT g.goods_id, 
+           g.user_name,
+           g.review_id, 
+           g.review_rank, 
+           g.goods_name,
+           g.review_title,
+           g.review_content,
+           g.review_date,
+           g.review_image1,
+           g.review_image2,
+           g.review_image3,
+           g.review_image4,
+           g.review_image5,
+           COUNT(q.user_id) as likeCount
+    FROM review_table as g
+    LEFT JOIN review_like as q ON g.goods_id = q.goods_id AND g.review_id = q.review_id
+    WHERE g.goods_id = #{goodsId}
+    GROUP BY g.goods_id, user_name
+    ORDER BY 
+        CASE 
+            WHEN #{orderBy} = 'likeCount' THEN likeCount 
+            ELSE g.review_date 
+        END DESC,
+        g.review_id ASC
+    LIMIT #{pageSize} OFFSET 3
+) AS t2
+	WHERE #{pageNo} > 1
+
+
+   
+
+	</select>
+	<!-- 获取商品评论点赞总数 -->
+	<select id="getGoodsReviewListLikeCount" resultType="java.lang.Integer">
+  SELECT count(*)
+    FROM review_like
+   WHERE goods_id = #{goodsId} and review_id = #{reviewId}
+   
+</select>
+	<!-- 获取商品評星星评价数 -->
+	<select id="getGoodsReviewStarCount" resultType="java.lang.Integer">
+  SELECT count(review_rank) as ReviewStarCount
+    FROM review_table
+   WHERE goods_id = #{goodsId}
+</select>
+	<!-- 获取商品star总分数 -->
+	<select id="getGoodsReviewStarGrade" resultType="java.lang.Integer">
+	select 
+		(sum(review_rank)) as starGrade
+	from review_table
+	WHERE goods_id = #{goodsId}
+</select>
+	<!-- 获取商品context评价总数 -->
+	<select id="getGoodsReviewContextCount" resultType="java.lang.Integer">
+	SELECT 
+		count(review_title) as contextCount
+	FROM newbee_mall_db.review_table
+	WHERE goods_id = #{goodsId}
+		
+	</select>
+</mapper>

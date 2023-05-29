@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="ltd.newbee.mall.dao.MessageMapper">
+	
+	<select id="findMessage"
+		resultType="ltd.newbee.mall.entity.Message">
+		SELECT message.*
+		FROM message
+		WHERE message.user_id = #{userId}
+		ORDER BY msg_date DESC
+	</select>
+	
+	<select id="findSession"
+		resultType="ltd.newbee.mall.entity.MessageSession">
+		SELECT h.host_name, h.host_img, m.*
+		FROM message m
+		JOIN host h ON m.host_id = h.host_id
+		WHERE m.host_id IN (
+    	SELECT host_id
+    	FROM message
+    	WHERE user_id = #{userId}
+		)
+		AND (m.host_id, m.msg_date) IN (
+    	SELECT host_id, MAX(msg_date)
+    	FROM message
+    	WHERE user_id = #{userId}
+    	GROUP BY host_id
+		)
+		ORDER BY m.msg_date DESC;
+	</select>
+	
+	<select id="findChat"
+		resultType="ltd.newbee.mall.entity.MessageChat">
+		SELECT h.host_name, h.host_img, m.user_id, m.*,u.user_name,u.user_photo
+		FROM message m
+		JOIN host h ON m.host_id = h.host_id
+		JOIN user_info u ON m.user_id = u.user_id
+		WHERE m.user_id = #{userId} AND m.host_id = #{hostId}
+		ORDER BY m.msg_date ASC;
+	</select>
+
+
+</mapper>

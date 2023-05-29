@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="ltd.newbee.mall.dao.HotelPicBoardMapper">
+	
+	<select id="findHotelPicBoard"
+		resultType="ltd.newbee.mall.entity.HotelPicBoard">
+		SELECT * FROM hotel_image
+		join hotel
+		on hotel.hotel_id =hotel_image.hotel_id 
+		where hotel.hotel_id =#{hotelId}
+	</select>
+	<select id="findHostAssit"
+		resultType="ltd.newbee.mall.entity.HotelPicBoard">
+
+		SELECT h2.host_id, h2.host_name,h2.host_image FROM host
+		join hotel as h1
+		on hotel.host_id =host.host_id 
+		JOIN host as h2
+		on h1.host_id = h2.super_host
+		where hotel.hotel_id =#{hotelId}
+
+	</select>
+	<select id="findReviewCount"
+		resultType="int">
+
+		select count(review_id) from 
+		review as r
+		join hotel as h
+		on r.hotel_id = h.hotel_id
+		join host t
+		on h.host_id = t.host_id
+		where t.host_id =#{hotelId}
+
+	</select>
+</mapper>
